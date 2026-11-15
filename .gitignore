@@ -1,0 +1,27 @@
+build/
+out/
+*.user
+*.suo
+.vs/
+
+# Compiled outputs, diagnostics, and reverse-engineering databases.
+*.dll
+*.exe
+*.lib
+*.pdb
+*.obj
+*.ilk
+*.exp
+*.log
+*.dmp
+*.i64
+*.idb
+*.id0
+*.id1
+*.id2
+*.nam
+*.til
+
+# Local game reference data and menu screenshots are not source dependencies.
+reference/
+skrt menu clone/images/
