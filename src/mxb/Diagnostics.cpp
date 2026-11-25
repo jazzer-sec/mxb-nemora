@@ -22,8 +22,8 @@ std::mutex g_lock;
 Status g_status;
 
 // Headers from the beta21 executable used to derive these diagnostic RVAs.
-constexpr DWORD kTimeDateStamp = 0x6A21833D;
-constexpr DWORD kImageSize = 0x10FD000;
+constexpr DWORD kTimeDateStamp = off::kImageTimestamp;
+constexpr DWORD kImageSize = off::kImageSize;
 
 template <typename T>
 bool Read(uintptr_t address, T& value) {

@@ -61,7 +61,7 @@ int main() {
         dos->e_magic=IMAGE_DOS_SIGNATURE; dos->e_lfanew=0x80;
         auto nt=reinterpret_cast<IMAGE_NT_HEADERS64*>(testBase+dos->e_lfanew);
         nt->Signature=IMAGE_NT_SIGNATURE; nt->FileHeader.Machine=IMAGE_FILE_MACHINE_AMD64;
-        nt->FileHeader.TimeDateStamp=0x6A21833D;
+        nt->FileHeader.TimeDateStamp=0x6B032CE7;
         nt->OptionalHeader.Magic=IMAGE_NT_OPTIONAL_HDR64_MAGIC;
         nt->OptionalHeader.SizeOfImage=0x10FD000;
         Store(0x598904,7); Store(0x3D7900,4); Store(0x9CC444,9); Store(0x9CC448,0xFFFFFFFF);

@@ -1,14 +1,26 @@
 #pragma once
 #include <cstdint>
 
-// Offsets for MX Bikes beta21 (mxbikes.exe, x64, preferred base 0x140000000).
-// Everything here is confirmed in the IDB; see NOTES.md for how each one was derived.
+// Offsets for MX Bikes beta21f (mxbikes.exe, x64, preferred base 0x140000000).
+// Numeric constants below reflect beta21f; older addresses in explanatory
+// comments are historical beta21e analysis. See NOTES.md for verification.
 // Bump kBuildTag and re-derive if the exe changes.
 
 namespace mxb {
 namespace off {
 
-inline constexpr const char* kBuildTag = "beta21";
+inline constexpr const char* kBuildTag = "beta21f";
+inline constexpr uint32_t kImageTimestamp = 0x6B032CE7;
+inline constexpr uint32_t kImageSize = 0x10FD000;
+inline constexpr uintptr_t kVersionString = 0x3361C8;
+inline constexpr uintptr_t kSerializeState = 0x15A30;
+inline constexpr uintptr_t kSerializeCall = 0x719E2;
+inline constexpr uintptr_t kClientSummary = 0x6C640;
+inline constexpr uintptr_t kBikeChecksum = 0x1B5B30;
+inline constexpr uintptr_t kPlayerConnect = 0x2A23E0;
+inline constexpr uintptr_t kSetPlayerInfo = 0x2A49E0;
+inline constexpr uintptr_t kSendPlayerInfo = 0x2A4880;
+inline constexpr uintptr_t kCrashLeanJump = 0x1A8834;
 inline constexpr uintptr_t   kPreferredBase = 0x140000000ull;
 
 // ---- RVAs (add to the real module base) ---------------------------------
@@ -40,8 +52,8 @@ inline constexpr uintptr_t kWindowHandle = 0xE4B238;
 // 0x14024F17A returns to 0x14024F180, so a glFrustum hook can tell the player
 // view apart from the shadow and reflection passes by checking whether the
 // return address lands inside this range.
-inline constexpr uintptr_t kMainViewRenderBegin = 0x24EF80;
-inline constexpr uintptr_t kMainViewRenderEnd   = 0x24F736;
+inline constexpr uintptr_t kMainViewRenderBegin = 0x24F1C0;
+inline constexpr uintptr_t kMainViewRenderEnd   = 0x24F976;
 
 // Camera sets, loaded by Camera_LoadCfg (0x14011AD40) from a bike's cameras.cfg.
 // One 1396-byte entry per loaded vehicle, array runs to 0x561308 (50 entries).
@@ -69,19 +81,19 @@ inline constexpr int       kCamMaxPerSet     = 10;
 // pointer. Clears the crashed flag and rider state and re-seats the rider
 // transform from the bike, leaving the bike itself where it is. That is exactly
 // what recovering from a crash needs.
-inline constexpr uintptr_t kRiderReset = 0x1957D0;
+inline constexpr uintptr_t kRiderReset = 0x195830;
 
 // The game's UI input collectors. App_WndProc calls both for every message,
 // before it falls through to DefWindowProcA. No-oping them is how we take input
 // away from the game without touching the message pump.
-inline constexpr uintptr_t kInputCollectKeyboard = 0x28DFD0;
-inline constexpr uintptr_t kInputCollectMouse    = 0x28E1F0;
+inline constexpr uintptr_t kInputCollectKeyboard = 0x28E210;
+inline constexpr uintptr_t kInputCollectMouse    = 0x28E430;
 
 // Crash-tolerance sites inside Rider_Update.
-inline constexpr uintptr_t kCrashLatConst    = 0x329410;  // double 4000.0,  exclusive -> patch in place
-inline constexpr uintptr_t kCrashSustConst   = 0x32940C;  // float -2000.0,  exclusive -> patch in place
-inline constexpr uintptr_t kCrashVertInsn    = 0x1A9CB2;  // movsd xmm15, [rip+d32] -> 10000.0, SHARED const
-inline constexpr uintptr_t kCrashLongInsn    = 0x1A9F6D;  // comiss xmm0, [rip+d32] -> 15000.0, SHARED const
+inline constexpr uintptr_t kCrashLatConst    = 0x329450;  // double 4000.0,  exclusive -> patch in place
+inline constexpr uintptr_t kCrashSustConst   = 0x32944C;  // float -2000.0,  exclusive -> patch in place
+inline constexpr uintptr_t kCrashVertInsn    = 0x1A9D52;  // movsd xmm15, [rip+d32] -> 10000.0, SHARED const
+inline constexpr uintptr_t kCrashLongInsn    = 0x1AA00D;  // comiss xmm0, [rip+d32] -> 15000.0, SHARED const
 
 // Displacement field position and instruction length for the two shared-constant sites.
 inline constexpr uint32_t kCrashVertDispAt = 5, kCrashVertInsnLen = 9;
@@ -105,20 +117,20 @@ inline constexpr uint32_t kCrashLongDispAt = 3, kCrashLongInsnLen = 7;
 //   view+192 == 2   explicit bounds at view+56..+68
 //   view+196 != 0   ortho
 //   view+188 == 1 && view+400 == 1   Render_CubeProbe's 6 faces (camera+4 = 90)
-inline constexpr uintptr_t kViewBuildFrustum = 0x249510;
+inline constexpr uintptr_t kViewBuildFrustum = 0x249750;
 
 // Render_VisorEffects(view): draws two 728-byte effect slots, dirt then rain.
 // View_Init (0xB120) loads effects/visor/dirt.cfg into slot 0 and rain.cfg into
 // slot 1. Render_Frame copies the persistent view to its stack before drawing.
-inline constexpr uintptr_t kRenderVisorEffects = 0x252510;
+inline constexpr uintptr_t kRenderVisorEffects = 0x252750;
 
 // Applied-value interceptors for the world look. Hooking the setter beats poking
 // the global behind it: the value is rewritten as it is applied, so nothing has
 // to be saved or restored and it does not matter how often, or from where, the
 // game recomputes it.
-inline constexpr uintptr_t kGlSetClearColor = 0x22FB50;  // (float r, float g, float b)
-inline constexpr uintptr_t kGlSetFogColor   = 0x228CF0;  // (float rgb[3])
-inline constexpr uintptr_t kGlSetFogEnable  = 0x228C90;  // (int on)
+inline constexpr uintptr_t kGlSetClearColor = 0x22FD90;  // (float r, float g, float b)
+inline constexpr uintptr_t kGlSetFogColor   = 0x228F30;  // (float rgb[3])
+inline constexpr uintptr_t kGlSetFogEnable  = 0x228ED0;  // (int on)
 
 // The globals those are fed from in Render_Frame / Render_MainView. Recorded for
 // diagnostics; the modifier intercepts rather than writing these.
@@ -227,9 +239,9 @@ inline constexpr uintptr_t kEngineApi = 0x566C48;
 // else without needing to classify meshes:
 //   sub_14024E740      the general scene renderer (track, bikes, props)
 //   sub_140261220      called ONLY for a type-1 entity's +6392 object
-inline constexpr uintptr_t kMaterialSetup = 0x24B6E0;
-inline constexpr uintptr_t kRiderRenderBegin = 0x261220;
-inline constexpr uintptr_t kRiderRenderEnd   = 0x26191C;  // 0x261220 + 0x6FC
+inline constexpr uintptr_t kMaterialSetup = 0x24B920;
+inline constexpr uintptr_t kRiderRenderBegin = 0x261460;
+inline constexpr uintptr_t kRiderRenderEnd   = 0x261B5C;  // 0x261220 + 0x6FC
 
 // The scene entity collection, same layout as every other engine collection
 // (see Process.h). Entities carry a type at +268: 1 is a vehicle, 0 is track
@@ -304,97 +316,97 @@ inline constexpr int       kControlThrottle    = 1;
 // Rider_Update(bike), the per-frame rider step. Hex-Rays cannot decompile it
 // (20,273 bytes, "local variable allocation has failed"), so anything needed
 // out of it has to come from the disassembly or from a runtime probe.
-inline constexpr uintptr_t kRiderUpdate = 0x1A8480;
+inline constexpr uintptr_t kRiderUpdate = 0x1A8520;
 
 // ---- Bike physics object -------------------------------------------------
 namespace bike {
-// Minimum readable prefix, through the final validation flag at +145892.
-// This is not the full allocation size. The checksum reads through +145591.
-inline constexpr size_t kSize = 145896;
+// Minimum readable prefix, through the final validation flag at +148764.
+// This is not the full allocation size.
+inline constexpr size_t kSize = 148768;
 
 // Engine
 // Live layout confirmed by 0x14018FF80, 0x1401B5B30 and a running bike.
 // 0x140168CD0 uses a different layout; its engine/suspension offsets are wrong here.
-inline constexpr size_t kEngineId        = 1816;   // char[32]
-inline constexpr size_t kEngineInertia   = 1848;   // double
-inline constexpr size_t kNumMappings     = 2020;
-inline constexpr size_t kMappingBase     = 2024;
+inline constexpr size_t kEngineId        = 1832;   // char[32]
+inline constexpr size_t kEngineInertia   = 1864;   // double
+inline constexpr size_t kNumMappings     = 2036;
+inline constexpr size_t kMappingBase     = 2040;
 inline constexpr size_t kMappingStride   = 264;
 inline constexpr size_t kMappingTorque   = 208;    // Curve, relative to a mapping
 inline constexpr size_t kMappingBrake    = 232;    // Curve, relative to a mapping
 inline constexpr int    kMaxMappings     = 5;
-inline constexpr size_t kMappingSetting  = 3344;
-inline constexpr size_t kClutchMaxTorque = 3504;   // double
+inline constexpr size_t kMappingSetting  = 3360;
+inline constexpr size_t kClutchMaxTorque = 3520;   // double
 // Aerodynamics, read by Bike_LoadCfg as doubles. CdA is the drag coefficient
 // already multiplied by frontal area, so it is the single number that sets top
 // speed: drag goes as CdA * v^2 and terminal velocity as 1/sqrt(CdA). Min is
 // the tucked pose, Max is sitting up.
-inline constexpr size_t kAeroMinCdA      = 145576;  // double, Aero/MinCdA
-inline constexpr size_t kAeroMaxCdA      = 145584;  // double, Aero/MaxCdA
+inline constexpr size_t kAeroMinCdA      = 148448;  // double, Aero/MinCdA
+inline constexpr size_t kAeroMaxCdA      = 148456;  // double, Aero/MaxCdA
 
 // Loader 0x14018FF80 divides RPM by 60: these fields hold revolutions/second.
-inline constexpr size_t kEngineMaxRPM    = 3648;   // float
-inline constexpr size_t kEngineShiftRPM  = 3652;   // float
-inline constexpr size_t kNumLimiter      = 1984;
-inline constexpr size_t kLimiter0        = 1992;   // double[NumLimiter], max 3 before mappings
+inline constexpr size_t kEngineMaxRPM    = 3664;   // float
+inline constexpr size_t kEngineShiftRPM  = 3668;   // float
+inline constexpr size_t kNumLimiter      = 2000;
+inline constexpr size_t kLimiter0        = 2008;   // double[NumLimiter], max 3 before mappings
 
 // Gearbox / driveline
-inline constexpr size_t kGearingCount    = 3664;
-inline constexpr size_t kGearingPairs    = 3668;   // int driving/driven pairs, max 100
-inline constexpr size_t kRearSprocketCount = 13528;
-inline constexpr size_t kRearSprocketTable = 13532;
-inline constexpr size_t kNumGears        = 12512;
-inline constexpr size_t kGear0           = 12556;  // int[NumGears]
-inline constexpr size_t kUpShiftTime     = 12864;  // float
-inline constexpr size_t kDownShiftTime   = 12868;  // float
-inline constexpr size_t kDisengageTime   = 12872;  // float
-inline constexpr size_t kDisengageMaxTq  = 12876;  // float
-inline constexpr size_t kEngageTime      = 12888;  // float
-inline constexpr size_t kEngageMaxSpdDif = 12892;  // float
-inline constexpr size_t kFirstAxisInert  = 13960;  // double
-inline constexpr size_t kSecondAxisInert = 13984;  // double
-inline constexpr size_t kDrivelineEff    = 14016;  // double
+inline constexpr size_t kGearingCount    = 3680;
+inline constexpr size_t kGearingPairs    = 3684;   // int driving/driven pairs, max 100
+inline constexpr size_t kRearSprocketCount = 13552;
+inline constexpr size_t kRearSprocketTable = 13556;
+inline constexpr size_t kNumGears        = 12528;
+inline constexpr size_t kGear0           = 12572;  // int[NumGears]
+inline constexpr size_t kUpShiftTime     = 12888;  // float
+inline constexpr size_t kDownShiftTime   = 12892;  // float
+inline constexpr size_t kDisengageTime   = 12896;  // float
+inline constexpr size_t kDisengageMaxTq  = 12900;  // float
+inline constexpr size_t kEngageTime      = 12912;  // float
+inline constexpr size_t kEngageMaxSpdDif = 12916;  // float
+inline constexpr size_t kFirstAxisInert  = 13984;  // double
+inline constexpr size_t kSecondAxisInert = 14008;  // double
+inline constexpr size_t kDrivelineEff    = 14040;  // double
 
 // Suspension
-inline constexpr size_t kFrontMass        = 16672;  // double
-inline constexpr size_t kFrontSpring      = 16720;  // SettingRange
-inline constexpr size_t kFrontOil         = 19464;  // SettingRange
-inline constexpr size_t kFrontPreload     = 19496;  // SettingRange
-inline constexpr size_t kFrontRideHeight  = 19516;  // SettingRange
-inline constexpr size_t kFrontBumpThr0    = 18384;  // double
-inline constexpr size_t kFrontBumpThr1    = 18392;  // double
-inline constexpr size_t kFrontReboundThr0 = 19400;  // double
-inline constexpr size_t kFrontReboundThr1 = 19408;  // double
-inline constexpr size_t kFrontTopOutK     = 19544;  // float
+inline constexpr size_t kFrontMass        = 16696;  // double
+inline constexpr size_t kFrontSpring      = 18344;  // SettingRange
+inline constexpr size_t kFrontOil         = 21088;  // SettingRange
+inline constexpr size_t kFrontPreload     = 21120;  // SettingRange
+inline constexpr size_t kFrontRideHeight  = 21140;  // SettingRange
+inline constexpr size_t kFrontBumpThr0    = 20008;  // double
+inline constexpr size_t kFrontBumpThr1    = 20016;  // double
+inline constexpr size_t kFrontReboundThr0 = 21024;  // double
+inline constexpr size_t kFrontReboundThr1 = 21032;  // double
+inline constexpr size_t kFrontTopOutK     = 21168;  // float
 
-inline constexpr size_t kRearMass         = 20408;  // double
-inline constexpr size_t kRearSpring       = 20896;  // SettingRange
-inline constexpr size_t kRearPreload      = 23652;  // SettingRange
-inline constexpr size_t kRearRideHeight   = 23672;  // SettingRange
-inline constexpr size_t kRearRodLength    = 23692;  // SettingRange
-inline constexpr size_t kRearBumpThr0     = 22552;  // double
-inline constexpr size_t kRearBumpThr1     = 22560;  // double
-inline constexpr size_t kRearReboundThr0  = 23568;  // double
-inline constexpr size_t kRearReboundThr1  = 23576;  // double
-inline constexpr size_t kRearBumpStopK    = 23632;  // float  BumpStop/SpringBase
-inline constexpr size_t kRearBumpStopRise = 23636;  // float  BumpStop/SpringRisingRate
-inline constexpr size_t kRearBumpStopDamp = 23640;  // float  BumpStop/DampingBase
-inline constexpr size_t kRearTopOutK      = 23716;  // float
+inline constexpr size_t kRearMass         = 22064;  // double
+inline constexpr size_t kRearSpring       = 23768;  // SettingRange
+inline constexpr size_t kRearPreload      = 26524;  // SettingRange
+inline constexpr size_t kRearRideHeight   = 26544;  // SettingRange
+inline constexpr size_t kRearRodLength    = 26564;  // SettingRange
+inline constexpr size_t kRearBumpThr0     = 25424;  // double
+inline constexpr size_t kRearBumpThr1     = 25432;  // double
+inline constexpr size_t kRearReboundThr0  = 26440;  // double
+inline constexpr size_t kRearReboundThr1  = 26448;  // double
+inline constexpr size_t kRearBumpStopK    = 26504;  // float  BumpStop/SpringBase
+inline constexpr size_t kRearBumpStopRise = 26508;  // float  BumpStop/SpringRisingRate
+inline constexpr size_t kRearBumpStopDamp = 26512;  // float  BumpStop/DampingBase
+inline constexpr size_t kRearTopOutK      = 26588;  // float
 
 // Chassis
-inline constexpr size_t kChassisMass      = 832;   // double
-inline constexpr size_t kFrontLatStiff    = 864;   // double
-inline constexpr size_t kRearLatStiff     = 896;   // double
+inline constexpr size_t kChassisMass      = 848;   // double
+inline constexpr size_t kFrontLatStiff    = 880;   // double
+inline constexpr size_t kRearLatStiff     = 912;   // double
 
 // Tyres (embedded)
-inline constexpr size_t kTyreCount0   = 24824;   // wheel 0: how many tyre records were loaded
-inline constexpr size_t kTyreArray0   = 24832;   // wheel 0, tyre 0
+inline constexpr size_t kTyreCount0   = 27696;   // wheel 0: how many tyre records were loaded
+inline constexpr size_t kTyreArray0   = 27704;   // wheel 0, tyre 0
 inline constexpr size_t kWheelStride  = 58128;
 inline constexpr size_t kTyreStride   = 4912;
 inline constexpr int    kMaxTyres     = 10;
-inline constexpr size_t kActiveTyreIdx0 = 73952;   // wheel%d/tyresetting; + kWheelStride for wheel 1
-inline constexpr size_t kActiveTyrePtr0 = 73960;   // + kWheelStride for wheel 1  (qword)
-inline constexpr size_t kWheelFriction0 = 73968;   // + kWheelStride for wheel 1  (double)
+inline constexpr size_t kActiveTyreIdx0 = 76824;   // wheel%d/tyresetting; + kWheelStride for wheel 1
+inline constexpr size_t kActiveTyrePtr0 = 76832;   // + kWheelStride for wheel 1  (qword)
+inline constexpr size_t kWheelFriction0 = 76840;   // + kWheelStride for wheel 1  (double)
 
 // Rider control inputs, latched by Bike_Update (0x1401ADA40) each step. The raw
 // block at +624 is copied into the active block at +720, and when the rider has
@@ -413,16 +425,16 @@ inline constexpr size_t kWheelFriction0 = 73968;   // + kWheelStride for wheel 1
 // Prefer the ACTIVE copy: it is what the physics actually used, and it is
 // already zeroed while crashed.
 inline constexpr size_t kInputRawSteer       = 624;  // double
-inline constexpr size_t kInputActiveSteer    = 720;  // double
-inline constexpr size_t kInputActiveThrottle = 728;  // double
-inline constexpr size_t kInputActiveBrake    = 736;  // double
+inline constexpr size_t kInputActiveSteer    = 728;  // double
+inline constexpr size_t kInputActiveThrottle = 736;  // double
+inline constexpr size_t kInputActiveBrake    = 744;  // double
 
 // The rigid bodies this bike owns, as pointers. Bike_BuildStateSnapshot
 // accumulates the centre of mass over exactly these three, skipping the rider
 // when crashed, which is what identifies the set.
-inline constexpr size_t kChassisBody = 1072;    // void*
-inline constexpr size_t kForkBody    = 14208;   // void*
-inline constexpr size_t kRiderBody   = 144512;  // void*
+inline constexpr size_t kChassisBody = 1088;    // void*
+inline constexpr size_t kForkBody    = 14232;   // void*
+inline constexpr size_t kRiderBody   = 147384;  // void*
 
 // The bike's transform, 16 floats. Row-major with the translation at float index
 // 3/7/11 -- Mat_TransformPoint (0x140266D80) settles that much.
@@ -433,7 +445,7 @@ inline constexpr size_t kRiderBody   = 144512;  // void*
 // space). So the translation is -R*pos: the right magnitude with the axes
 // scrambled, which is exactly what put the china hat at a fixed point far
 // outside the map. Use kWheelPos0 instead.
-inline constexpr size_t kWorldMatrix  = 928;
+inline constexpr size_t kWorldMatrix  = 944;
 
 // Per-wheel world position, float[3] (x, y, z), + kWheelStride for wheel 1.
 // Unambiguously world-space and needing no convention guess, because
@@ -450,13 +462,13 @@ inline constexpr size_t kWorldMatrix  = 928;
 // 133848 - 75720 == 58128 == kWheelStride, which is what identifies them as the
 // per-wheel pair. That midpoint is also the engine's own reference point for a
 // bike, so it is the right thing to hang an overlay off. World up is +Y.
-inline constexpr size_t kWheelPos0    = 75720;  // float[3]
+inline constexpr size_t kWheelPos0    = 78592;  // float[3]
 
 // Rider
-inline constexpr size_t kRiderMass    = 142800;  // double
-inline constexpr size_t kCrashedFlag  = 142828;  // int
-inline constexpr size_t kFallRef      = 142832;  // float[3]
-inline constexpr size_t kRiderState   = 144396;  // int
+inline constexpr size_t kRiderMass    = 145672;  // double
+inline constexpr size_t kCrashedFlag  = 145700;  // int
+inline constexpr size_t kFallRef      = 145704;  // float[3]
+inline constexpr size_t kRiderState   = 147268;  // int
 }  // namespace bike
 
 // ---- Tyre record ---------------------------------------------------------

@@ -121,13 +121,13 @@ T ScaledPositive(T stock, double mult, double floorValue) {
 // swap hook and the physics both live on the main thread.
 //
 // Everything it touches is inside the bike object except one pointer at
-// bike+144512, which it dereferences, so that is checked first.
+// the rider body pointer, which it dereferences, so that is checked first.
 bool RiderReset(BikeData& bike) {
     const uintptr_t fn = Rva(off::kRiderReset);
     if (!fn) return false;
     if (!IsReadable(reinterpret_cast<void*>(fn), 16)) return false;
 
-    void* body = *reinterpret_cast<void* const*>(bike.raw() + 144512);
+    void* body = *reinterpret_cast<void* const*>(bike.raw() + off::bike::kRiderBody);
     if (!IsReadable(body, sizeof(void*))) return false;
 
     using RiderResetFn = int32_t(__fastcall*)(void*);
@@ -623,9 +623,9 @@ void Tick() {
             st.lastState = state;
             if (!changed && !due) continue;
 
-            // bike+928 is the bike's transform; log it raw rather than guessing
+            // The bike's transform is logged raw rather than guessing
             // which triplet is the translation, and flag any non-finite float.
-            const float* xf = reinterpret_cast<const float*>(bike.raw() + 928);
+            const float* xf = reinterpret_cast<const float*>(bike.raw() + off::bike::kWorldMatrix);
             bool finite = true;
             for (int i = 0; i < 12; ++i)
                 if (!std::isfinite(xf[i])) finite = false;

@@ -837,7 +837,7 @@ void StatusTab() {
             BikeData b = bikes.front();
             std::snprintf(line, sizeof(line), "gears=%d  maps=%d  maxRPM=%.0f  riderMass=%.1f",
                           b.numGears(), b.numMappings(), b.engineMaxRPM(),
-                          *reinterpret_cast<double*>(b.raw() + 142800));
+                          *reinterpret_cast<double*>(b.raw() + off::bike::kRiderMass));
             InsertText(line);
 
             const SettingRange fs = b.frontSpring();

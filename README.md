@@ -1,6 +1,6 @@
 # MXB Nemora
 
-An injectable C++17 mod for **MX Bikes beta21 on Windows x64**, with an ImGui
+An injectable C++17 mod for **MX Bikes beta21f on Windows x64**, with an ImGui
 overlay, physics modifiers, visual controls, clean lens, Spinny, network ram,
 and diagnostics. Physics settings multiply the loaded bike's own values so
 the same controls work across different bikes. Feature behavior and current
@@ -13,8 +13,10 @@ and reference game data are excluded. Build the DLL locally using the steps belo
 
 Requirements: Windows x64, Visual Studio 2022 with the C++ desktop workload and
 Windows SDK, CMake 3.20 or newer, and vcpkg with `minhook:x64-windows-static`.
-The binary offsets and hook checks target beta21; other game builds require
-revalidation. The current source enables `MXB_TESTING_NO_GUARDS` in
+The binary offsets and hook checks target beta21f; other game builds require
+revalidation. The build checks the executable identity before installing hooks.
+Detailed implementation notes below may refer to the preceding beta21e build.
+The current source enables `MXB_TESTING_NO_GUARDS` in
 `src/mxb/Modifiers.h`; see **Testing build switch** before building.
 
 | Modifier | What it touches |
@@ -50,6 +52,10 @@ src/Host.h             the per-frame contract, kept as documentation
 
 ## Building
 
+The GitHub repository currently excludes `skrt menu clone/`, the custom ImGui
+fork and menu headers required by CMake. Restore that dependency locally before
+building a fresh checkout. The existing local workspace retains it.
+
 ```powershell
 vcpkg install minhook:x64-windows-static
 .\build.ps1
@@ -58,6 +64,16 @@ vcpkg install minhook:x64-windows-static
 Output is `build\Release\mxb_physics.dll`. It links the CRT and MinHook
 statically, so the only dependencies are system DLLs (opengl32, user32, ole32,
 kernel32, imm32) and nothing has to sit next to the game.
+
+## Finding moved functions after an update
+
+With the game running, use `Get-Process mxbikes` to find its PID, then run
+`python tools/scan_offsets.py <PID>`. The read-only scanner searches the
+unpacked runtime code using the patterns in `tools/signatures.json` and prints
+candidate RVAs. Missing or multiple matches are reported as unresolved. It
+does not change the game or automatically update the cheat: function semantics,
+call sites, globals, and structure layouts still need verification. Patterns
+were checked against beta21e and beta21f and can break on later updates.
 
 ## Using it
 
@@ -214,7 +230,9 @@ The `live_layout_2` build corrects the engine, gearbox, suspension and aerodynam
 
 Build validation covers stock projection, independent curve/tyre storage, unchanged live physics, setup selections, and stale/missing baseline guards. **Live multiplayer acceptance is not yet verified.** The server may reject for a different check; this is not a general anti-ban guarantee.
 
-The projection smoke test also accepts a relocatable live-bike capture as its first argument. The October 25 fixture was read from the running game without writing process memory, then replayed entirely in the test process. That checks the real layout and byte-exact restoration; its captured parameters are not claimed to be unmodified game defaults.
+The projection smoke test uses a synthetic beta21f bike layout. The older
+October 25 live-bike fixture belongs to the previous layout and is not replayed
+by this build.
 
 Run the standalone projection test with:
 

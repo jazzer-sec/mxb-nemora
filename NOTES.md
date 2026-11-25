@@ -1,5 +1,20 @@
 # MX Bikes physics module — working notes
 
+## beta21f update (November 24)
+
+The executable is identified by PE timestamp `0x6B032CE7`, image size
+`0x10FD000`, and the runtime `beta21f` version string. The beta21e/beta21f
+comparison used unpacked runtime code: loader, checksum, rider reset/update,
+serializer and snapshot functions. Engine fields moved by 16 bytes, suspension
+layouts changed, and rider fields moved by 2872 bytes. Hook sites and the
+client serializer call were updated independently. Diagnostics and install
+reject other executable builds. `tools/scan_offsets.py` is a read-only runtime
+pattern report; a unique match is a candidate, not proof of unchanged data
+layouts or behavior. Live in-game behavior remains to be tested.
+
+The sections below describe earlier beta21e investigation and retain historical
+addresses where they explain the original findings.
+
 The original scope was singleplayer only. The user later authorized stock bike
 verification replies for their private-server testing; see the README's
 "Stock bike verification replies" section for the current behavior and limits.

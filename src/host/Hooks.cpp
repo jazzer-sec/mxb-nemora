@@ -132,7 +132,7 @@ int64_t __fastcall HookedSerializeState(void* outgoing,const void* snapshot) {
     const int64_t result=g_origSerializeState(outgoing,snapshot);
     // This serializer can be reused elsewhere. Only the local multiplayer
     // client's verified call site gets the synthetic outgoing pose.
-    if(!g_shuttingDown.load(std::memory_order_acquire) && result==0 && caller==Rva(0x71A37)) {
+    if(!g_shuttingDown.load(std::memory_order_acquire) && result==0 && caller==Rva(off::kSerializeCall + 5)) {
         if (networkram::GetStatus().enabled) networkram::OnSerialized(outgoing,snapshot);
         else spinny::OnSerialized(outgoing,snapshot);
     }
@@ -450,6 +450,20 @@ VerificationStatus GetVerificationStatus() {
 bool Install() {
     if (g_installed.load(std::memory_order_acquire)) return true;
 
+    const auto* dos=reinterpret_cast<const IMAGE_DOS_HEADER*>(ModuleBase());
+    const IMAGE_NT_HEADERS64* nt=nullptr;
+    if(IsReadable(dos,sizeof(*dos)) && dos->e_magic==IMAGE_DOS_SIGNATURE && dos->e_lfanew>0 && dos->e_lfanew<0x100000)
+        nt=reinterpret_cast<const IMAGE_NT_HEADERS64*>(ModuleBase()+dos->e_lfanew);
+    const auto* version = reinterpret_cast<const char*>(Rva(off::kVersionString));
+    const bool knownBuild=IsReadable(nt,sizeof(*nt)) && nt->Signature==IMAGE_NT_SIGNATURE &&
+        nt->FileHeader.Machine==IMAGE_FILE_MACHINE_AMD64 &&
+        nt->FileHeader.TimeDateStamp==off::kImageTimestamp && nt->OptionalHeader.SizeOfImage==off::kImageSize &&
+        IsReadable(version,8) && std::memcmp(version,"beta21f",8)==0;
+    if (!knownBuild) {
+        Logf("unsupported game build: beta21f layout required; no hooks installed");
+        return false;
+    }
+
     if (MH_Initialize() != MH_OK) {
         Logf("MH_Initialize failed");
         return false;
@@ -524,7 +538,7 @@ bool Install() {
     // These two entry points were verified in the beta21 database. The TLS
     // scope restricts the stock view to the local client's verification reply;
     // setup validation and every other checksum caller remain pass-through.
-    constexpr uintptr_t summaryRva = 0x6C690, checksumRva = 0x1B5B30;
+    constexpr uintptr_t summaryRva = off::kClientSummary, checksumRva = off::kBikeChecksum;
     constexpr uint8_t summaryPrefix[] = {0x48,0x89,0x5C,0x24,0x20,0x57,0x48,0x83,0xEC,0x50,0xBF,0x01,0,0,0};
     constexpr uint8_t checksumPrefix[] = {0x48,0x8B,0xC4,0x4C,0x89,0x48,0x20,0x4C,0x89,0x40,0x18,0x89,0x50,0x10};
     auto summary = reinterpret_cast<void*>(Rva(summaryRva));
@@ -545,17 +559,10 @@ bool Install() {
         }
     } else Logf("verification: build entry-point check failed; leaving responses unchanged");
 
-    constexpr uint8_t clientCall[] = {0xE8,0x29,0x41,0xFA,0xFF};
+    constexpr uint8_t clientCall[] = {0xE8,0x49,0x40,0xFA,0xFF};
     constexpr uint8_t serializerPrefix[] = {0x48,0x89,0x5C,0x24,0x08,0x48,0x89,0x74,0x24,0x10,0x57,0x48,0x81,0xEC,0x90,0,0,0};
-    auto call=reinterpret_cast<void*>(Rva(0x71A32));
-    auto serializer=reinterpret_cast<void*>(Rva(0x15B60));
-    const auto* dos=reinterpret_cast<const IMAGE_DOS_HEADER*>(ModuleBase());
-    const IMAGE_NT_HEADERS64* nt=nullptr;
-    if(IsReadable(dos,sizeof(*dos)) && dos->e_magic==IMAGE_DOS_SIGNATURE && dos->e_lfanew>0 && dos->e_lfanew<0x100000)
-        nt=reinterpret_cast<const IMAGE_NT_HEADERS64*>(ModuleBase()+dos->e_lfanew);
-    const bool knownBuild=IsReadable(nt,sizeof(*nt)) && nt->Signature==IMAGE_NT_SIGNATURE &&
-                          nt->FileHeader.Machine==IMAGE_FILE_MACHINE_AMD64 &&
-                          nt->FileHeader.TimeDateStamp==0x6A21833D && nt->OptionalHeader.SizeOfImage==0x10FD000;
+    auto call=reinterpret_cast<void*>(Rva(off::kSerializeCall));
+    auto serializer=reinterpret_cast<void*>(Rva(off::kSerializeState));
 
     // Skip both visor effect slots (dirt and rain). Check both
     // the function entry and the two field reads used to gate each effect.
@@ -595,11 +602,11 @@ bool Install() {
     // argument. Clone there, after the game's own local GUID check, so no local
     // GUID, license state, or caller-owned payload needs to be written.
     constexpr uint8_t connectPrefix[] = {0x48,0x89,0x5C,0x24,0x08,0x48,0x89,0x6C,0x24,0x10,0x48,0x89,0x74,0x24,0x18,0x57};
-    constexpr uint8_t setPrefix[] = {0x48,0x83,0xEC,0x28,0x89,0x15,0xFA,0x42,0x2F,0x00,0x4C,0x63,0xC2,0x48,0x8B,0xD1};
+    constexpr uint8_t setPrefix[] = {0x48,0x83,0xEC,0x28,0x89,0x15,0xBA,0x40,0x2F,0x00,0x4C,0x63,0xC2,0x48,0x8B,0xD1};
     constexpr uint8_t sendPrefix[] = {0x48,0x89,0x5C,0x24,0x18,0x57,0x48,0x81,0xEC,0xD0,0x05,0x00,0x00};
-    auto connectInfo = reinterpret_cast<void*>(Rva(0x2A21A0));
-    auto setInfo = reinterpret_cast<void*>(Rva(0x2A47A0));
-    auto sendInfo = reinterpret_cast<void*>(Rva(0x2A4640));
+    auto connectInfo = reinterpret_cast<void*>(Rva(off::kPlayerConnect));
+    auto setInfo = reinterpret_cast<void*>(Rva(off::kSetPlayerInfo));
+    auto sendInfo = reinterpret_cast<void*>(Rva(off::kSendPlayerInfo));
     const bool guidBuild = knownBuild && IsReadable(connectInfo,sizeof(connectPrefix)) &&
         IsReadable(setInfo,sizeof(setPrefix)) && IsReadable(sendInfo,sizeof(sendPrefix)) &&
         std::memcmp(connectInfo,connectPrefix,sizeof(connectPrefix)) == 0 &&

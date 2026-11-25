@@ -45,7 +45,7 @@ struct SkipJump {
     const char* what;
 };
 constexpr SkipJump kSkipJumps[] = {
-    {0x1A8794, 0x76, 0xEB, "lean angle (jbe)"},  // 0x1401A8794
+    {off::kCrashLeanJump, 0x76, 0xEB, "lean angle (jbe)"},
 };
 
 // The ground-contact exit at 0x1401A85BF is deliberately NOT in that list.
